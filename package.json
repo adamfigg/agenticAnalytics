@@ -1,0 +1,27 @@
+{
+  "name": "analytics-lite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lightweight web analytics for small businesses. AI writes the digest; everything else is deterministic.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config src/frontend/vite.config.ts",
+    "build": "tsc -p tsconfig.json && vite build --config src/frontend/vite.config.ts",
+    "pipeline": "tsx src/backend/pipeline/run_daily.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "csv-parse": "^5.5.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
+  }
+}
