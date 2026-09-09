@@ -1,4 +1,5 @@
 // Orchestrator. Chains the agents in order. The step numbering IS the reading order.
+import "../lib/env";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -44,7 +45,10 @@ export async function runDailyFromSiteData(data: SiteData): Promise<Digest> {
   }
 
   // Step 3 — ONE model call writes both channels
-  const copy = await writeCopy(digest);
+  const written = await writeCopy(digest);
+  const copy = written.copy;
+  digest.copySource = written.source;
+  digest.copyReason = written.reason;
   // The digest object is the single source of truth — the dashboard renders
   // `narrative`, so it must be filled here, not just the channel bodies.
   digest.narrative = copy.emailNarrative;

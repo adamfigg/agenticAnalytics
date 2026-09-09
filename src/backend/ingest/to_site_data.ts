@@ -85,5 +85,13 @@ export async function buildSiteData(input: BuildInput): Promise<SiteData | null>
         : +(day.conversionTimeTotalSec / day.conversionSamples).toFixed(1),
     baselineVisitors: baselineDays.map((d) => d.visitors),
     baselineFunnels,
+    // Prior conversion counts, so a collapse in orders is visible to the gate.
+    // Same fallback as today's count: an explicit `convert` event where the
+    // owner wired the hook, otherwise the last funnel step.
+    baselineConversions: baselineDays.map((d) =>
+      d.conversions > 0
+        ? d.conversions
+        : (d.pages[input.funnelOrder[input.funnelOrder.length - 1] ?? ""]?.sessions ?? 0),
+    ),
   };
 }

@@ -33,6 +33,14 @@ export interface SiteData {
    * Absent for CSV imports, which carry a single day.
    */
   baselineFunnels?: FunnelStepRaw[][];
+  /**
+   * Prior days' conversion counts, oldest first. Without this a conversion
+   * collapse is invisible to the gate: the metric renders, but with no norm to
+   * compare against it can never move, so a day where traffic held steady and
+   * orders halved would be suppressed. Absent for CSV imports, which carry a
+   * single day.
+   */
+  baselineConversions?: number[];
 }
 
 // ---------- Step 1 outputs (deterministic) ----------
@@ -42,12 +50,31 @@ export interface StatsResult {
   totalConversions: number;
   conversionRatePct: number;
   visitorsDeltaPct: number; // vs baseline mean
+  /**
+   * Conversions vs their own baseline mean. `undefined` means "no history to
+   * compare against" — which is different from 0, and the gate must not read a
+   * missing baseline as "nothing changed".
+   */
+  conversionsDeltaPct?: number;
+  /**
+   * Typical conversions per day over the baseline window. The gate needs the
+   * level, not just the delta: a percentage swing on a handful of orders is
+   * noise no matter how large it looks.
+   */
+  baselineConversionsMean?: number;
 }
 
 export interface TrendsResult {
   highTrafficPages: { page: string; views: number }[];
   lowTrafficPages: { page: string; views: number }[];
   overallDirection: "up" | "down" | "flat";
+  /**
+   * The page that rose most against its OWN norm, if any did meaningfully.
+   * Undefined is the common case and must stay that way: the busiest page is a
+   * fact, not good news, and reporting one every day trains the owner to ignore
+   * the section. A win has to have actually happened.
+   */
+  risingPage?: { page: string; sessions: number; deltaPct: number };
 }
 
 export interface FunnelStepResult {
@@ -116,6 +143,10 @@ export interface Digest {
   // Copy produced by step 3, one model call fills both:
   emailBody?: string;
   smsBody?: string;
+  /** Whether the copy came from the model or the deterministic fallback. */
+  copySource?: "model" | "fallback";
+  /** Why the fallback was used, when it was. Never shown to a customer. */
+  copyReason?: string;
 }
 
 // ---------- Step 3: the single model call returns this ----------
