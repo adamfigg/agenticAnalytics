@@ -168,6 +168,122 @@ describe("suppression gate", () => {
     }
   });
 
+  test("orders collapsing on steady traffic sends", () => {
+    // The scenario the gate was blind to until conversions got a baseline. Same
+    // visitors as always, funnel shape unremarkable, but orders fell by half.
+    // For a small business this is the single most expensive thing to miss.
+    const digest = digestFor({
+      visitors: 400,
+      funnel: { "/": 400, "/pricing": 300, "/checkout": 120, "/thank-you": 20 },
+      baselineVisitors: flatBaseline(395),
+      typicalConversions: 40,
+      conversions: 20,
+    });
+
+    assert.equal(digest.shouldSend, true, "a 50% drop in orders must send");
+    const conversions = digest.metrics.find((m) => m.label === "Conversions");
+    assert.equal(conversions?.deltaPct, -50);
+  });
+
+  test("orders holding steady stays quiet", () => {
+    // Same site, ordinary day. The conversion metric now has a real baseline, so
+    // this must be quiet for the right reason rather than by accident.
+    const digest = digestFor({
+      visitors: 400,
+      funnel: { "/": 400, "/pricing": 300, "/checkout": 120, "/thank-you": 41 },
+      baselineVisitors: flatBaseline(395),
+      typicalConversions: 40,
+      conversions: 41,
+    });
+
+    assert.equal(digest.shouldSend, false, "orders within noise must not send");
+  });
+
+  test("a handful of orders swinging wildly stays quiet", () => {
+    // Three orders becoming one is -67%, and means nothing. The volume floor has
+    // to hold here or every low-traffic customer gets a daily email.
+    const digest = digestFor({
+      visitors: 200,
+      funnel: { "/": 200, "/pricing": 90, "/checkout": 20, "/thank-you": 1 },
+      baselineVisitors: flatBaseline(198),
+      typicalConversions: 3,
+      conversions: 1,
+    });
+
+    assert.equal(
+      digest.shouldSend,
+      false,
+      "a percentage swing on 3 orders a day is noise, not news",
+    );
+  });
+
+  test("a site with no conversion history cannot be judged on orders", () => {
+    // No typicalConversions supplied. The metric still renders, but a missing
+    // baseline must never be read as "orders held steady".
+    const digest = digestFor({
+      visitors: 400,
+      funnel: { "/": 400, "/pricing": 300, "/checkout": 120, "/thank-you": 2 },
+      baselineVisitors: flatBaseline(398),
+    });
+
+    assert.equal(digest.shouldSend, false, "no history means no conversion verdict");
+  });
+
+  test("a two-visitor site is told about no bright spot at all", () => {
+    // Every step tied at 2 sessions. There is no busiest page, nothing rose, and
+    // nothing here is good news. Claiming a bright spot on this data is a lie the
+    // owner can check in five seconds, and it costs us their trust in everything
+    // else the digest says.
+    const digest = digestFor({
+      visitors: 2,
+      funnel: { "/": 2, "/pricing": 2, "/checkout": 2, "/thank-you": 2 },
+      baselineVisitors: flatBaseline(2),
+      baselineFunnel: { "/": 2, "/pricing": 2, "/checkout": 2, "/thank-you": 2 },
+    });
+
+    assert.equal(digest.win, null, "a tie on 2 visitors is not a bright spot");
+  });
+
+  test("the busiest page is not, on its own, a win", () => {
+    // A perfectly ordinary day on a real site. The landing page drew the most
+    // traffic, as it does every single day. That is not news.
+    const digest = digestFor({
+      visitors: 400,
+      funnel: { "/": 400, "/pricing": 300, "/checkout": 120, "/thank-you": 40 },
+      baselineVisitors: flatBaseline(398),
+      baselineFunnel: { "/": 398, "/pricing": 299, "/checkout": 119, "/thank-you": 40 },
+    });
+
+    assert.equal(digest.win, null, "busiest-page-as-usual must not report a win");
+  });
+
+  test("a page that genuinely rose is reported as the win", () => {
+    // Pricing traffic up by half against its own norm. This is the shape of win
+    // CLAUDE.md's example digest describes.
+    const digest = digestFor({
+      visitors: 430,
+      funnel: { "/": 400, "/pricing": 450, "/checkout": 120, "/thank-you": 40 },
+      baselineVisitors: flatBaseline(420),
+      baselineFunnel: { "/": 398, "/pricing": 300, "/checkout": 119, "/thank-you": 40 },
+    });
+
+    assert.equal(digest.win?.page, "/pricing");
+    assert.match(digest.win?.detail ?? "", /up 50%/);
+  });
+
+  test("a rise on a page nobody visits is not a win", () => {
+    // 2 -> 5 sessions is +150% and completely meaningless. The volume floor has
+    // to hold here for the same reason it does on the gate.
+    const digest = digestFor({
+      visitors: 400,
+      funnel: { "/": 400, "/pricing": 300, "/checkout": 120, "/tiny": 5 },
+      baselineVisitors: flatBaseline(398),
+      baselineFunnel: { "/": 398, "/pricing": 299, "/checkout": 119, "/tiny": 2 },
+    });
+
+    assert.equal(digest.win, null, "a rise on 2 sessions a day is noise");
+  });
+
   test("no model call is implied on a suppressed day", () => {
     // The gate is computed BEFORE the model runs, so a suppressed digest must
     // arrive with its copy fields still empty. If narrative were populated here,

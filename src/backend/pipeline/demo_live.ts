@@ -6,6 +6,7 @@
 // survived the process, which is the entire point of the durable store.
 //
 //   npm run demo
+import "../lib/env";
 import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

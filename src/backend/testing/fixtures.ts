@@ -22,6 +22,12 @@ export interface DayShape {
    */
   baselineFunnel?: Record<string, number>;
   conversions?: number;
+  /**
+   * The site's TYPICAL daily conversions, repeated across the baseline window.
+   * Supplying this is what lets a test distinguish "orders collapsed today" from
+   * "this site has always converted at this rate".
+   */
+  typicalConversions?: number;
   avgConversionTimeSec?: number;
 }
 
@@ -62,6 +68,10 @@ export function makeSiteData(shape: DayShape): SiteData {
     avgConversionTimeSec: shape.avgConversionTimeSec ?? 0,
     baselineVisitors: shape.baselineVisitors,
     baselineFunnels,
+    baselineConversions:
+      shape.typicalConversions === undefined
+        ? undefined
+        : shape.baselineVisitors.map(() => shape.typicalConversions!),
   };
 }
 
