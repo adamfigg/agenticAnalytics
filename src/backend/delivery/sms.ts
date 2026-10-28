@@ -62,12 +62,20 @@ export async function sendSms(digest: Digest, to: string): Promise<DeliveryResul
     };
 
     if (!res.ok) {
-      // 21608 is the one you will actually hit on a trial account: the
-      // destination number has not been verified in the Twilio console.
-      const hint =
-        payload.code === 21608
-          ? " (trial accounts can only text numbers verified in the Twilio console)"
-          : "";
+      // The two failures worth naming, because neither is a bug in this code and
+      // both read as mysterious otherwise.
+      const hints: Record<number, string> = {
+        // Trial accounts refuse any destination not verified in the console.
+        21608: " (trial account: verify this number in the Twilio console first)",
+        // Paid US long codes still need an approved A2P 10DLC campaign. Carriers
+        // block unregistered application-to-person traffic outright.
+        30034:
+          " (this number is not registered for A2P 10DLC — US carriers block" +
+          " unregistered application-to-person SMS, regardless of account balance)",
+        // Landline or unreachable carrier.
+        21614: " (the destination cannot receive SMS)",
+      };
+      const hint = hints[payload.code ?? -1] ?? "";
       return {
         ok: false,
         reason: `${payload.message ?? `Twilio returned ${res.status}`}${hint}`,

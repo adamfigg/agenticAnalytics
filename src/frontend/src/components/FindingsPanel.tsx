@@ -21,10 +21,16 @@ export function GateBanner({
         <span className="mark">{sent ? "✓" : "⏸"}</span>
         <div>
           <strong>
-            {sent ? "Gate open — this day sends" : "Suppressed — nothing worth sending"}
+            {digest.forced
+              ? "Forced — the gate said no"
+              : sent
+                ? "Gate open — this day sends"
+                : "Suppressed — nothing worth sending"}
           </strong>
           <p>
-            {sent
+            {digest.forced
+              ? "FORCE_SEND overrode the suppression gate. This is a test send, not a finding — nothing here moved enough to be worth a customer's attention."
+              : sent
               ? usedModel
                 ? "One model call was made to write the copy."
                 : "The copy below came from the deterministic fallback, not the model."

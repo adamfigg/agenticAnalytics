@@ -81,13 +81,15 @@ export function MessagePreview({
             <span>a link is appended by the delivery layer</span>
           </div>
 
-          {/* SMS is on hold. The delivery module and the endpoint still work —
-              only the button is parked, so turning it back on is deleting this
-              block. Nothing about the SMS copy path has been removed. */}
-          <p className="sendbox-note">
-            <strong>Sending is on hold.</strong> The copy above is still generated every run. Turning
-            it on needs Twilio credentials and, for US numbers, A2P 10DLC registration.
-          </p>
+          <SendBox
+            channel="sms"
+            label="Send text"
+            placeholder="+15551234567"
+            inputType="tel"
+            configured={env.smsConfigured}
+            setupHint="Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER to .env."
+            digest={digest}
+          />
         </div>
       </div>
     </div>

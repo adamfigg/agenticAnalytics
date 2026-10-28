@@ -1,5 +1,6 @@
 // Orchestrator. Chains the agents in order. The step numbering IS the reading order.
 import "../lib/env";
+import { forceSend } from "../lib/env";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -40,8 +41,18 @@ export async function runDailyFromSiteData(data: SiteData): Promise<Digest> {
 
   // Gate: nothing moved? Never reach the model. Queue for the weekly instead.
   if (!digest.shouldSend) {
-    // TODO: queueForWeekly(digest)
-    return digest;
+    if (!forceSend()) {
+      // TODO: queueForWeekly(digest)
+      return digest;
+    }
+    // The gate said no and is being overridden for testing. Say so loudly, and
+    // record it on the digest so a forced send can never be read as a finding.
+    console.warn(
+      "[force] FORCE_SEND is on — the gate suppressed this day and is being " +
+        "overridden. Local testing only; unset it before this runs for a customer.",
+    );
+    digest.forced = true;
+    digest.shouldSend = true;
   }
 
   // Step 3 — ONE model call writes both channels

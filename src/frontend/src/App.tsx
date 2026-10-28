@@ -64,10 +64,22 @@ export default function App() {
     <div className="wrap">
       <header className="bench-head">
         <h1>Digest test bench</h1>
-        <span className={`badge ${env.hasApiKey ? "live" : ""}`}>
-          {env.hasApiKey
-            ? "ANTHROPIC_API_KEY set — runs hit the real model"
-            : "No API key — copy comes from the template fallback"}
+        {/* Before a run this can only report whether a key is CONFIGURED — it
+            cannot know whether that key works. Once a run has happened, report
+            what actually occurred instead, so the badge can never contradict
+            the gate banner a panel below it. */}
+        <span
+          className={`badge ${
+            result ? (result.usedModel ? "live" : "") : env.hasApiKey ? "live" : ""
+          }`}
+        >
+          {result
+            ? result.usedModel
+              ? "Last run: copy written by the model"
+              : "Last run: template fallback — the model was not used"
+            : env.hasApiKey
+              ? "ANTHROPIC_API_KEY is configured"
+              : "No ANTHROPIC_API_KEY — copy will come from the template fallback"}
         </span>
       </header>
       <p className="subtitle">

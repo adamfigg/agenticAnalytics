@@ -71,3 +71,23 @@ export function hasAnthropicKey(): boolean {
 export function anthropicBaseUrl(): string {
   return process.env.ANTHROPIC_BASE_URL?.trim() || "https://api.anthropic.com";
 }
+
+/**
+ * Development override: run step 3 and produce copy even when the suppression
+ * gate said no.
+ *
+ * This exists for local testing against real data, where a normal fortnight
+ * often contains nothing worth sending and you still need to see a message
+ * arrive. It does NOT remove the gate — `compose` still computes the honest
+ * verdict, and a digest produced this way is marked `forced` so nothing
+ * downstream can mistake it for a real finding.
+ *
+ * CLAUDE.md is explicit that suppression is a product decision first: a digest
+ * that arrives every day gets filtered to a folder in three weeks. Leaving this
+ * on in production would break that, which is why it is opt-in, loud, and
+ * recorded on the digest rather than silently changing behaviour.
+ */
+export function forceSend(): boolean {
+  const v = process.env.FORCE_SEND?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}

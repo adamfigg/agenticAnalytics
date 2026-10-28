@@ -147,6 +147,12 @@ export interface Digest {
   copySource?: "model" | "fallback";
   /** Why the fallback was used, when it was. Never shown to a customer. */
   copyReason?: string;
+  /**
+   * True when FORCE_SEND overrode a closed gate. `shouldSend` is then true even
+   * though the gate said no, so this is the only thing distinguishing a forced
+   * test send from a real finding. Never set in normal operation.
+   */
+  forced?: boolean;
 }
 
 // ---------- Step 3: the single model call returns this ----------
